@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "activity": "Hike Osmena Peak",
+    "location": "Dalaguete",
+    "date": "2026-10-21",
+    "start_time": "07:32",
+    "category": "Hiking"
+  },
+  {
+    "id": 2,
+    "activity": "Round Trip South",
+    "location": "South Cebu",
+    "date": "2026-10-25",
+    "start_time": "07:36",
+    "category": "Road Trip"
+  }
+]

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Travel Itinerary System</title>
+<style>
+  body{
+    background-color: lavender;
+  }
+  h1 {
+  color: rgb(147, 255, 147);
+  text-align: center;
+  text-shadow: 
+    -1px -1px 0 #000,  
+     1px -1px 0 #000,
+    -1px  1px 0 #000,
+     1px  1px 0 #000;
+  }
+  h2 {
+    color: rgb(147, 255, 147);
+    text-shadow: 
+    -1px -1px 0 #000,  
+     1px -1px 0 #000,
+    -1px  1px 0 #000,
+     1px  1px 0 #000;
+  } 
+  p {
+    font-family: verdana;
+    font-size: 14px;
+  }
+  table, th, td {
+  border: 1px solid rgb(48, 90, 48);
+  border-collapse: collapse;
+  padding: 10px;
+  }
+</style>
+</head>
+<body>
+  <h1>Travel Itinerary System</h1>
+
+  <p id="message"></p>
+
+  <h2>Add an activity</h2>
+  <form id="addForm">
+    <div><label>Activity: <input name="activity" required></label></div>
+    <div><label>Location: <input name="location" required></label></div>
+    <div><label>Date: <input name="date" type="date" required></label></div>
+    <div><label>Start time: <input name="start_time" type="time" required></label></div>
+    <div><label>Category: <input name="category" required></label></div>
+    <div><button type="submit">Add activity</button></div>
+  </form>
+
+  <h2>Find an activity by ID</h2>
+  <label>Activity ID: <input id="searchId" type="number" min="1"></label>
+  <button id="searchBtn" type="button">Search</button>
+  <button id="showAllBtn" type="button">Show all</button>
+
+  <h2 id="tableTitle">Itinerary</h2>
+  <table border="1" cellpadding="5">
+    <thead>
+      <tr><th>ID</th><th>Date</th><th>Start</th><th>Activity</th><th>Location</th><th>Category</th><th>Action</th></tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <p id="empty" hidden>No activities to show.</p>
+
+<script>
+const API = '/api/activities';
+const tbody = document.getElementById('tbody');
+const emptyEl = document.getElementById('empty');
+const msg = document.getElementById('message');
+const tableTitle = document.getElementById('tableTitle');
+
+function showMessage(text, ok) {
+  msg.textContent = (ok ? 'Success: ' : 'Error: ') + text;
+}
+
+function render(list, grouped) {
+  tbody.innerHTML = '';
+  emptyEl.hidden = list.length > 0;
+  let lastDate = null;
+  list.forEach((a) => {
+    if (grouped && a.date !== lastDate) {
+      lastDate = a.date;
+      const head = document.createElement('tr');
+      const hc = document.createElement('th');
+      hc.colSpan = 7;
+      hc.textContent = a.date;
+      head.appendChild(hc);
+      tbody.appendChild(head);
+    }
+    const tr = document.createElement('tr');
+    [a.id, a.date, a.start_time, a.activity, a.location, a.category].forEach((v) => {
+      const td = document.createElement('td');
+      td.textContent = v;
+      tr.appendChild(td);
+    });
+    const td = document.createElement('td');
+    const btn = document.createElement('button');
+    btn.textContent = 'Delete';
+    btn.addEventListener('click', () => deleteActivity(a.id));
+    td.appendChild(btn);
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  });
+}
+
+async function loadAll() {
+  try {
+    const res = await fetch(API);
+    const data = await res.json();
+    tableTitle.textContent = 'Itinerary';
+    render(data, true);
+  } catch (e) {
+    showMessage('Could not reach the server.', false);
+  }
+}
+
+async function searchById() {
+  const id = document.getElementById('searchId').value.trim();
+  if (!id) return showMessage('Enter an activity ID to search.', false);
+  try {
+    const res = await fetch(`${API}/${encodeURIComponent(id)}`);
+    const data = await res.json();
+    tableTitle.textContent = `Activity #${id}`;
+    if (!res.ok) { render([], false); return showMessage(data.error, false); }
+    msg.textContent = '';
+    render([data], false);
+  } catch (e) {
+    showMessage('Could not reach the server.', false);
+  }
+}
+
+async function deleteActivity(id) {
+  if (!confirm(`Delete activity #${id}?`)) return;
+  try {
+    const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) return showMessage(data.error, false);
+    showMessage(`Activity #${id} deleted.`, true);
+    loadAll();
+  } catch (e) {
+    showMessage('Could not reach the server.', false);
+  }
+}
+
+document.getElementById('addForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const body = Object.fromEntries(new FormData(form).entries());
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) return showMessage(data.error, false);
+    showMessage(`Activity #${data.id} added.`, true);
+    form.reset();
+    loadAll();
+  } catch (err) {
+    showMessage('Could not reach the server.', false);
+  }
+});
+
+document.getElementById('searchBtn').addEventListener('click', searchById);
+document.getElementById('showAllBtn').addEventListener('click', () => { document.getElementById('searchId').value = ''; loadAll(); });
+
+loadAll();
+</script>
+</body>
+</html>
